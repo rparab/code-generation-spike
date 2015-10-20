@@ -14,7 +14,7 @@ object HmrcBuild extends Build {
   lazy val CodeGenerator = Project(appName, file("."))
     .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
     .settings(
-      targetJvm := "jvm-1.7",
+      targetJvm := "jvm-1.8",
       libraryDependencies ++= Seq(
         Test.scalaTest,
         Test.pegdown
