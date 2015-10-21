@@ -17,7 +17,10 @@ object HmrcBuild extends Build {
       targetJvm := "jvm-1.8",
       libraryDependencies ++= Seq(
         Test.scalaTest,
-        Test.pegdown
+        Test.pegdown,
+        Compile.playConfig,
+        Compile.playHealth,
+        Compile.hmrcTest
       ),
       Developers()
     )
@@ -26,6 +29,9 @@ object HmrcBuild extends Build {
 private object BuildDependencies {
 
   object Compile {
+    val playConfig = "uk.gov.hmrc" %% "play-config" % "2.0.0"
+    val playHealth = "uk.gov.hmrc" %% "play-health" % "1.1.0"
+    val hmrcTest = "uk.gov.hmrc" %% "hmrctest" % "0.3.0"
   }
 
   sealed abstract class Test(scope: String) {

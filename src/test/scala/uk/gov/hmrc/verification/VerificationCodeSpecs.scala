@@ -16,22 +16,53 @@
 
 package uk.gov.hmrc.verification
 
-import org.scalatest.WordSpecLike
+import org.scalatest.{Matchers, WordSpecLike}
+import uk.gov.hmrc.play.test.WithFakeApplication
 
-class VerificationCodeSpecs extends WordSpecLike {
+class VerificationCodeSpecs extends Matchers with WordSpecLike with WithFakeApplication{
 
   "Verification Algoritm" should {
+
     "generate a 6 digit OTP" in {
-
       val verificationCode = VerificationCode
-      val generatedCode = verificationCode.generator(6)
 
-      generatedCode.length should be 6
-      generatedCode should be "123455"
+      val generatedCode = verificationCode.generator()
 
-      println(s"Generated verification code ${verificationCode}")
+      generatedCode.length shouldBe 6
+    }
 
+    "contain only digits in the OTP" in {
+      val verificationCode = VerificationCode
+
+      val generatedCode = verificationCode.generator()
+
+      true shouldBe isDigits(generatedCode)
 
     }
+
+    "validates the generated verification code in current time slice" in {
+      val verificationCode = VerificationCode
+
+      val generatedCode = verificationCode.generator()
+
+      val isValid = verificationCode.validator(generatedCode)
+
+      true shouldBe isValid
+    }
+
+    "validates the generated verification code in previous time slice" in {
+      val verificationCode = VerificationCode
+
+      val generatedCode = verificationCode.generator()
+
+      Thread.sleep(40000L)
+
+      val isValid = verificationCode.validator(generatedCode)
+
+      true shouldBe isValid
+    }
+
   }
+
+  private def isDigits(verificationCode: String) = verificationCode forall Character.isDigit
 }

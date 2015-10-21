@@ -18,7 +18,8 @@ package uk.gov.hmrc.verification
 
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-
+import play.api.Play
+import play.api.Play.current
 import scala.math._
 
 
@@ -26,66 +27,71 @@ object VerificationCode extends VerificationCode
 
 trait VerificationCode {
 
+  private def numberOfDigitsForOTPGeneration = Play.configuration.getString("numberOfDigitsForOTPGeneration").getOrElse(throw new IllegalArgumentException("numberOfDigitsForOTPGeneration."))
+
+  private def timeStep = Play.configuration.getString("timeStep").getOrElse(throw new IllegalArgumentException("timeStep."))
+
+  private def cryptographicHashFunction = Play.configuration.getString("cryptographicHashFunction").getOrElse(throw new IllegalArgumentException("cryptographicHashFunction."))
+
+  private def timeWindowCount = Play.configuration.getString("timeWindow").getOrElse(throw new IllegalArgumentException("timeWindow."))
+
+  def generator(): String = {
+    val currentTime: Long = getCurrentTime()
+    generator(currentTime)
+  }
+
+  def validator(verificationCode: String): Boolean = {
+    val timeWindowSize: Int = timeWindowCount.toInt
+    val timeWindow = -timeWindowSize to timeWindowSize
+    val currentTime: Long = getCurrentTime()
+
+    val generatedCodes = timeWindow.foldLeft(List[String]())((code, counter) => generator(currentTime + counter) :: code)
+
+    generatedCodes.contains(verificationCode)
+  }
+
   private def getKey(): String = {
     // key for HMAC-SHA512 - 64 bytes
-    val key = "3132333435363738393031323334353637383930" + "3132333435363738393031323334353637383930" + "3132333435363738393031323334353637383930" + "31323334"
-    //val key = new Random().nextInt(127).toString
-
+    val key = "31323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334"
     key
   }
 
-  private def hmac_sha(crypto: String, keyBytes: Array[Byte], text: Array[Byte]): Array[Byte] = {
+  private def generateHMACHash(crypto: String, keyBytes: Array[Byte], text: Array[Byte]): Array[Byte] = {
     val hmac = Mac.getInstance(crypto)
     val macKey = new SecretKeySpec(keyBytes, "RAW")
     hmac.init(macKey)
     hmac.doFinal(text)
   }
 
-  def generator(numberOfDigits: Int): String = {
-
-    val cryptoFunction: String = "HmacSHA512"
+  private def generator(currentTime: Long): String = {
+    val numberOfDigits = numberOfDigitsForOTPGeneration.toInt
+    val cryptoFunction = cryptographicHashFunction
     val key = getKey()
-    val time: Long = System.currentTimeMillis / 1000 / 30
 
-    val message = BigInt(time).toByteArray
-    val secretKey = BigInt(key).toByteArray
-    val hash: Array[Byte] = hmac_sha(cryptoFunction, secretKey, message)
+    // generate HMAC hash as per the specified cryptographic hash function in config
+    val hash: Array[Byte] = generateHMACHash(cryptoFunction, BigInt(key).toByteArray, BigInt(currentTime).toByteArray)
 
+    // standard mathematical computations as per RFC specifications
     val offset = hash(hash.length - 1) & 0xf
-
     val binary: BigInt = ((hash(offset) & 0x7f) << 24) | ((hash(offset + 1) & 0xff) << 16) | ((hash(offset + 2) & 0xff) << 8) | ((hash(offset + 3) & 0xff))
 
-    val otp = binary % (pow(10, numberOfDigits)).toLong
+    // extracting specified number of digits for OTP from binary string
+    val otp = binary % pow(10, numberOfDigits).toLong
 
-    ("0" * numberOfDigits + otp.toString).takeRight(numberOfDigits)
+    // make sure always, specified number of digits are returned
+    paddedOTP(otp, numberOfDigits)
+
   }
 
-  def validator(key: String, numberOfDigits: Int, cryptoFunction: String, currentTime: Long, verificationCode: String, timeWindowSize: Int): Boolean = {
-
-    val timeWindow = -timeWindowSize to timeWindowSize
-    var generatedCodes = List[String]()
-
-    for (counter <- timeWindow) {
-      val time = currentTime + counter
-      generatedCodes = generator(6) :: generatedCodes
-    }
-
-    println("Verification Codes for validation")
-    generatedCodes.foreach(println)
-    generatedCodes.contains(verificationCode)
+  private def paddedOTP(otp: BigInt, numberOfDigits: Int): String = {
+    val zeroAppendedOTP = "0" * numberOfDigits + otp.toString
+    zeroAppendedOTP.takeRight(numberOfDigits)
   }
 
-//  def main(args: Array[String]) = {
-//
-//    val currentTime: Long = System.currentTimeMillis / 1000 / 30
-//    val verificationCode = generator(getKey(), 6, "HmacSHA512", currentTime)
-//    println(s"Generated verification code ${verificationCode}")
-//
-//    //Thread.sleep(50000)
-//
-//    val currentTimeValidator: Long = System.currentTimeMillis / 1000 / 30
-//    val status = validator(getKey(), 6, "HmacSHA512", currentTimeValidator, verificationCode, 0)
-//
-//    println(s"Status: ${status}")
-//  }
+  private def getCurrentTime(): Long = {
+    val timeSlice = timeStep.toInt
+    // get current time, as steps of time slices specified
+    System.currentTimeMillis / 1000 / timeSlice
+  }
+
 }
