@@ -27,13 +27,13 @@ object VerificationCode extends VerificationCode
 
 trait VerificationCode {
 
-  private def numberOfDigitsForOTPGeneration = Play.configuration.getString("numberOfDigitsForOTPGeneration").getOrElse(throw new IllegalArgumentException("numberOfDigitsForOTPGeneration."))
+  private def numberOfDigitsForOTPGeneration = Play.configuration.getString("numberOfDigitsForOTPGeneration").getOrElse(throw new IllegalArgumentException("Failed to resolve configuration 'numberOfDigitsForOTPGeneration'."))
 
-  private def timeStep = Play.configuration.getString("timeStep").getOrElse(throw new IllegalArgumentException("timeStep."))
+  private def timeStep = Play.configuration.getString("timeStep").getOrElse(throw new IllegalArgumentException("Failed to resolve configuration 'timeStep'."))
 
-  private def cryptographicHashFunction = Play.configuration.getString("cryptographicHashFunction").getOrElse(throw new IllegalArgumentException("cryptographicHashFunction."))
+  private def cryptographicHashFunction = Play.configuration.getString("cryptographicHashFunction").getOrElse(throw new IllegalArgumentException("Failed to resolve configuration 'cryptographicHashFunction'."))
 
-  private def timeWindowCount = Play.configuration.getString("timeWindow").getOrElse(throw new IllegalArgumentException("timeWindow."))
+  private def timeWindowCount = Play.configuration.getString("timeWindow").getOrElse(throw new IllegalArgumentException("Failed to resolve configuration 'timeWindow'."))
 
   def generator(): String = {
     val currentTime: Long = getCurrentTime()
@@ -52,6 +52,7 @@ trait VerificationCode {
 
   private def getKey(): String = {
     // key for HMAC-SHA512 - 64 bytes
+    //TODO This key should come from OTP service in future.
     val key = "31323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334"
     key
   }
