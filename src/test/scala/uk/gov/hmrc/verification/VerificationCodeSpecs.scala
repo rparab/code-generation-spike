@@ -55,7 +55,8 @@ class VerificationCodeSpecs extends Matchers with WordSpecLike with WithFakeAppl
 
       val generatedCode = verificationCode.generator()
 
-      Thread.sleep(40000L)
+      // added for entering a delay for verification.
+      Thread.sleep(30000L)
 
       val isValid = verificationCode.validator(generatedCode)
 

@@ -36,14 +36,14 @@ trait VerificationCode {
   private def timeWindowCount = Play.configuration.getString("timeWindow").getOrElse(throw new IllegalArgumentException("Failed to resolve configuration 'timeWindow'."))
 
   def generator(): String = {
-    val currentTime: Long = getCurrentTime()
+    val currentTime = getCurrentTime()
     generator(currentTime)
   }
 
   def validator(verificationCode: String): Boolean = {
-    val timeWindowSize: Int = timeWindowCount.toInt
+    val timeWindowSize = timeWindowCount.toInt
     val timeWindow = -timeWindowSize to timeWindowSize
-    val currentTime: Long = getCurrentTime()
+    val currentTime = getCurrentTime()
 
     val generatedCodes = timeWindow.foldLeft(List[String]())((code, counter) => generator(currentTime + counter) :: code)
 
@@ -70,11 +70,11 @@ trait VerificationCode {
     val key = getKey()
 
     // generate HMAC hash as per the specified cryptographic hash function in config
-    val hash: Array[Byte] = generateHMACHash(cryptoFunction, BigInt(key).toByteArray, BigInt(currentTime).toByteArray)
+    val hash = generateHMACHash(cryptoFunction, BigInt(key).toByteArray, BigInt(currentTime).toByteArray)
 
     // standard mathematical computations as per RFC specifications
     val offset = hash(hash.length - 1) & 0xf
-    val binary: BigInt = ((hash(offset) & 0x7f) << 24) | ((hash(offset + 1) & 0xff) << 16) | ((hash(offset + 2) & 0xff) << 8) | ((hash(offset + 3) & 0xff))
+    val binary = ((hash(offset) & 0x7f) << 24) | ((hash(offset + 1) & 0xff) << 16) | ((hash(offset + 2) & 0xff) << 8) | ((hash(offset + 3) & 0xff))
 
     // extracting specified number of digits for OTP from binary string
     val otp = binary % pow(10, numberOfDigits).toLong
